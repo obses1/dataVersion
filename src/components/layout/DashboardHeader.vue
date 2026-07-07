@@ -16,7 +16,7 @@ onUnmounted(() => clearInterval(timer))
 <template>
   <header class="dashboard-header">
     <div class="header-left">
-      <h1 class="header-title">企业数据监控大屏</h1>
+      <h1 class="header-title">数据监控大屏</h1>
     </div>
     <div class="header-right">
       <button class="mock-toggle" @click="toggleMock">

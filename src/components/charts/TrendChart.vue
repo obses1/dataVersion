@@ -15,7 +15,8 @@ function render() {
   chart.theme('dark')
   chart.style({ viewFill: 'transparent' })
 
-  const ds = props.data.map((d) => ({ date: d.date, value: d.online, category: '线上销售' }))
+  const ds = props.data
+    .map((d) => ({ date: d.date, value: d.online, category: '线上销售' }))
     .concat(props.data.map((d) => ({ date: d.date, value: d.offline, category: '线下销售' })))
 
   chart.data(ds)
@@ -25,7 +26,16 @@ function render() {
   chart.scale('color', { range: [CHART_COLORS[0], CHART_COLORS[1]] })
   chart.axis('x', { labelFill: '#8b9dc3', grid: false })
   chart.axis('y', { labelFill: '#8b9dc3', gridStroke: 'rgba(255,255,255,0.06)' })
-  chart.legend('color', { labelFill: '#8b9dc3' })
+
+  chart.legend({
+    color: {
+      position: 'top',
+      layout: { justifyContent: 'flex-end' },
+      itemLabelFill: '#e0e6f0',
+      itemLabelFontSize: 12,
+      itemMarkerFill: [CHART_COLORS[0], CHART_COLORS[1]],
+    },
+  })
 
   chart.line().encode('shape', 'smooth')
   chart.area().encode('shape', 'smooth').style('fillOpacity', 0.1)

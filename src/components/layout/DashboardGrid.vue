@@ -17,8 +17,8 @@
   grid-template-rows: 0.7fr 1.8fr 1.8fr 1.3fr;
   grid-template-areas:
     "metrics metrics metrics"
-    "region  trend   category"
-    "region  trend   category"
-    ".        .        progress";
+    "region  trend   right"
+    "region  trend   right"
+    "region  trend   right";
 }
 </style>

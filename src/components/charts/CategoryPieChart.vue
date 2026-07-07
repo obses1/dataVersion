@@ -7,22 +7,12 @@ const props = defineProps<{ data: CategoryItem[] }>()
 
 const total = computed(() => props.data.reduce((s, d) => s + d.value, 0))
 
-interface ArcData {
-  startX: number; startY: number
-  endX: number; endY: number
-  largeArc: number
-  color: string
-}
+const R = 36
+const CX = 50
+const CY = 55
 
-function describeArc(startAngle: number, endAngle: number, r: number): string {
-  const startRad = ((startAngle - 90) * Math.PI) / 180
-  const endRad = ((endAngle - 90) * Math.PI) / 180
-  const x1 = 50 + r * Math.cos(startRad)
-  const y1 = 50 + r * Math.sin(startRad)
-  const x2 = 50 + r * Math.cos(endRad)
-  const y2 = 50 + r * Math.sin(endRad)
-  const large = endAngle - startAngle > 180 ? 1 : 0
-  return `M 50 50 L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`
+function toRad(angle: number) {
+  return ((angle - 90) * Math.PI) / 180
 }
 
 const slices = computed(() => {
@@ -31,9 +21,40 @@ const slices = computed(() => {
     const startAngle = cumulative
     const sliceAngle = (d.value / total.value) * 360
     cumulative += sliceAngle
+    const midAngle = startAngle + sliceAngle / 2
+
+    // Arc path
+    const sRad = toRad(startAngle)
+    const eRad = toRad(cumulative)
+    const x1 = CX + R * Math.cos(sRad)
+    const y1 = CY + R * Math.sin(sRad)
+    const x2 = CX + R * Math.cos(eRad)
+    const y2 = CY + R * Math.sin(eRad)
+    const large = sliceAngle > 180 ? 1 : 0
+    const path = `M ${CX} ${CY} L ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} Z`
+
+    // Guide line + label position
+    const mRad = toRad(midAngle)
+    const cosA = Math.cos(mRad)
+    const sinA = Math.sin(mRad)
+    const lx1 = CX + R * cosA
+    const ly1 = CY + R * sinA
+    const lx2 = CX + (R + 4) * cosA
+    const ly2 = CY + (R + 4) * sinA
+    const lx3 = CX + (R + 6) * cosA
+    const ly3 = CY + (R + 6) * sinA
+
+    const isRight = cosA > 0.1
+    const isLeft = cosA < -0.1
+    const anchor = isRight ? 'start' : isLeft ? 'end' : 'middle'
+
     return {
-      path: describeArc(startAngle, cumulative, 42),
+      path,
       color: CHART_COLORS[i % CHART_COLORS.length],
+      lx1, ly1, lx2, ly2, lx3, ly3,
+      anchor,
+      name: d.name,
+      percent: d.percent,
     }
   })
 })
@@ -46,24 +67,44 @@ const slices = computed(() => {
       <div class="chart-area">
         <svg viewBox="0 0 100 100" class="pie-svg">
           <path
-            v-for="(slice, i) in slices"
+            v-for="(s, i) in slices"
             :key="i"
-            :d="slice.path"
-            :fill="slice.color"
+            :d="s.path"
+            :fill="s.color"
             stroke="rgba(6,30,93,0.8)"
             stroke-width="1"
           />
-          <circle cx="50" cy="50" r="26" fill="#0a0e27" />
+          <circle :cx="CX" :cy="CY" :r="22" fill="#0a0e27" />
+
+          <!-- Guide lines -->
+          <polyline
+            v-for="(s, i) in slices"
+            :key="'g' + i"
+            :points="`${s.lx1},${s.ly1} ${s.lx2},${s.ly2} ${s.lx3},${s.ly3}`"
+            fill="none"
+            stroke="#7ec8e3"
+            stroke-width="0.4"
+            opacity="0.7"
+          />
+
+          <!-- Labels -->
+          <text
+            v-for="(s, i) in slices"
+            :key="'t' + i"
+            :x="s.lx3 + (s.anchor === 'start' ? 1 : s.anchor === 'end' ? -1 : 0)"
+            :y="s.ly3 + 1"
+            :text-anchor="s.anchor"
+            fill="#c8e6f5"
+            font-size="1.8"
+          >{{ s.name }} {{ s.percent }}%</text>
         </svg>
       </div>
-      <div class="pie-legend">
-        <span
-          v-for="(d, i) in data"
-          :key="d.name"
-          class="legend-item"
-        >
+
+      <!-- Bottom legend -->
+      <div class="legend-bottom">
+        <span v-for="(d, i) in data" :key="d.name" class="legend-tag">
           <span class="legend-dot" :style="{ background: CHART_COLORS[i] }" />
-          {{ d.name }} {{ d.percent }}%
+          {{ d.name }}
         </span>
       </div>
     </template>
@@ -76,6 +117,7 @@ const slices = computed(() => {
   flex: 1;
   min-height: 0;
   width: 100%;
+  position: relative;
 }
 .chart-area {
   flex: 1;
@@ -87,7 +129,7 @@ const slices = computed(() => {
 .pie-svg {
   width: 100%;
   height: 100%;
-  max-height: 200px;
+  max-height: 160px;
 }
 .chart-empty {
   flex: 1;
@@ -97,25 +139,26 @@ const slices = computed(() => {
   color: #8b9dc3;
   font-size: 14px;
 }
-.pie-legend {
-  width: 100px;
-  padding: 10px 0;
+.legend-bottom {
+  position: absolute;
+  bottom: -30px;
+  left: 0;
+  right: 0;
   display: flex;
-  flex-direction: column;
   justify-content: center;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
 }
-.legend-item {
+.legend-tag {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #8b9dc3;
-  margin: 3px 0;
+  gap: 4px;
+  font-size: 8px;
+  color: #a0b8d0;
 }
 .legend-dot {
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
   border-radius: 2px;
   flex-shrink: 0;
 }

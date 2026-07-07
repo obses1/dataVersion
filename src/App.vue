@@ -65,19 +65,15 @@ useAutoRefresh(() => dashboard.fetchAll(), settings.refreshInterval)
           </DataPanel>
         </div>
 
-        <!-- Pie chart -->
-        <div style="grid-area: category">
-          <DataPanel title="品类占比">
+        <!-- Right column: pie + progress -->
+        <div style="grid-area: right; display: flex; flex-direction: column; gap: 0;">
+          <DataPanel title="品类占比" style="flex: 1; min-height: 0;">
             <template v-if="settings.dataStatus === 'loading'">
               <LoadingSkeleton :rows="4" />
             </template>
             <CategoryPieChart v-else :data="dashboard.categories" />
           </DataPanel>
-        </div>
-
-        <!-- Progress -->
-        <div style="grid-area: progress">
-          <DataPanel title="目标完成率">
+          <DataPanel title="目标完成率" style="flex: 1; min-height: 0;">
             <template v-if="settings.dataStatus === 'loading'">
               <LoadingSkeleton :rows="4" />
             </template>
